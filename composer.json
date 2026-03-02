@@ -1,0 +1,69 @@
+{
+    "name": "deutschepost/sdk-api-internetmarke",
+    "description": "Deutsche Post Internetmarke REST API SDK",
+    "keywords": [
+        "php",
+        "sdk"
+    ],
+    "license": "MIT",
+    "authors": [
+        {
+            "email": "plugins@netresearch.de",
+            "name": "Netresearch DTT GmbH",
+            "role": "Manufacturer",
+            "homepage": "https://www.netresearch.de/"
+        }
+    ],
+    "require": {
+        "php": "^8.3.0",
+        "ext-json": "*",
+        "php-http/client-common": "^2.7.0",
+        "php-http/discovery": "^1.17.0",
+        "php-http/httplug": "^2.2.0",
+        "php-http/logger-plugin": "^1.5.0",
+        "php-http/message": "^1.16.0",
+        "psr/http-client": "^1.0.1",
+        "psr/http-client-implementation": "^1.0.0",
+        "psr/http-factory": "^1.0.0",
+        "psr/http-factory-implementation": "^1.0.0",
+        "psr/http-message": "^1.0.0 || ^2.0.0",
+        "psr/http-message-implementation": "^1.0.0 || ^2.0.0",
+        "netresearch/jsonmapper": "^5.0.0",
+        "psr/log": "^2.0.0 || ^3.0.0"
+    },
+    "require-dev": {
+        "fig/log-test": "^1.1.0",
+        "nyholm/psr7": "^1.8.0",
+        "php-http/mock-client": "^1.5.0",
+        "phpunit/phpunit": "^12.0",
+        "phpstan/phpstan": "^2.0.0",
+        "rector/rector": "^2.0.0",
+        "squizlabs/php_codesniffer": "^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "DeutschePost\\Sdk\\Internetmarke\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "DeutschePost\\Sdk\\Internetmarke\\Test\\": "test/"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-DHLGW-1482-sdk-development": "1.0.x-dev"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "php-http/discovery": false
+        }
+    },
+    "scripts": {
+        "test": "phpunit -c test/phpunit.xml",
+        "rector": "rector --dry-run",
+        "phpstan": "phpstan --xdebug analyze src",
+        "lint": "phpcs --exclude=PSR2.Classes.PropertyDeclaration,Generic.Files.LineLength --standard=PSR12 src test"
+    }
+}

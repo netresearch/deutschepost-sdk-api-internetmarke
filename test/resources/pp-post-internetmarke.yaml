@@ -1,0 +1,1871 @@
+openapi: 3.0.1
+info:
+  version: "1.30"
+  title: Deutsche Post INTERNETMARKE API
+  description: >-
+     Division: Post & Parcel Germany<br />
+     The INTERNETMARKE is the online-postage for mail products of Deutsche Post AG.
+  termsOfService: >-
+    https://www.deutschepost.de/de/i/internetmarke-porto-drucken/kundenservice/internetmarke/kontakt.html
+  contact:
+    name: Deutsche Post / DHL
+    url: >-
+      https://www.deutschepost.de/de/i/internetmarke-porto-drucken/kundenservice/internetmarke/kontakt.html
+  license:
+    name: License
+    url: https://www.deutschepost.com
+servers:
+  - url: https://api-eu.dhl.com/post/de/shipping/im/v1
+    description: Production environment
+tags:
+  - name: ApiVersionResource
+    description: The REST Api version resource (Healthcheck).
+  - name: UserResource
+    description: >-
+      The rest resource user consists of two blocks of actions:<ul><li> Authorization of DPDHL external clients,</li><li>Retrieve for authorized user the user profile.</li></ul>
+  - name: AppResource
+    description: >-
+      The rest resource app is used to sell the INTERNETMARKE that are generated
+      in DP DHL's INTERNETMARKE application. The internet stamp is generated via
+      an individual cash account assigned to the end customer.<br/>The app
+      resource consists of three blocks of actions:<ul><li> User cash
+      management,</li><li> Internet stamps and</li><li> Provision of
+      information.</li></ul>
+paths:
+  /:
+    get:
+      tags:
+        - ApiVersionResource
+      summary: Get information about this REST Api version.
+      operationId: apiVersion
+      description: |
+        The call can be used to obtain the current version of the API and to confirm that the API is operational.
+        Note that this call does not require authentication, it can also be called via browser.
+      responses:
+        '200':
+          description: Major, minor, and build number being returned as x.y.z
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  amp:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                        example: 'pp-post-internetmarke'
+                      version:
+                        type: string
+                        description: "Sandbox version is >= Prod version"
+                        pattern: '^v\d{1,2}.\d{1,2}[.\d{1,5}]$'
+                        example: 'v1.1.4'
+                      rev:
+                        type: string
+                        example: '13'
+                      env:
+                        type: string
+                        example: 'prod-eu'
+  /app/wallet:
+    put:
+      tags:
+        - AppResource
+      summary: Charge users wallet
+      operationId: chargeWallet
+      parameters:
+        - name: amount
+          in: query
+          description: >-
+            The amount (positive integer as EUROCENT) to be charged for users
+            wallet.
+          required: true
+          schema:
+            minimum: 1
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: OK, users wallet was charged  successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChargeWalletResponse'
+        '400':
+          description: >-
+            Bad request, details about the error are described in the response
+            body.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error400Response'
+              examples:
+                  quotaExceeded:
+                    summary: Quota exceeded
+                    value:
+                      statusCode: "400"
+                      title: "quotaExceeded"
+                      detail: "Error while processing charging request for serialnumber 'A00123C039'"
+                  forbiddenPaymentMethod:
+                    summary: Used payment method is not allowed
+                    value:
+                      statusCode: "400"
+                      title: "forbiddenPaymentMethod"
+                      detail: "Error while processing charging request for serialnumber 'A00123C039'"
+
+        '401':
+          description: >-
+            Unauthorized, user account is not valid, is locked, the provided authorization token is not valid or the application is not authorized by user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error401Response'
+        '403':
+          description: Forbidden, user has not enough privileges to perform this request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error403Response'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error404Response'
+              example:
+                statusCode: "404"
+                title: "Not Found"
+                detail: "Wallet not found for account: ACCOUNT12345"
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error429Response'
+        '500':
+          description: >-
+            Internal Server Error, details about the technical error are
+            provided in the response body. Please contact support if the issue persists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error500Response'
+      security:
+        - BearerAuth: []
+  /user:
+    post:
+      tags:
+        - UserResource
+      summary: Get authorization token.
+      operationId: authorization
+      description:  | 
+            __This request is the precondition for almost all other calls!__
+            
+            The call provides you with the Bearer token which is then used for all other calls.
+            
+            Here is how:
+            The client makes a POST request to the 'user' resource by adding the following parameters 
+            using the application/x-www-form-urlencoded format with a character
+            encoding of UTF-8 in the HTTP request body:
+            
+            * grant_type __REQUIRED__. Must be set to "client_credentials".
+            
+            * client_id __REQUIRED__ (aka client_id (api key)  -- obtained in DHL Developer Portal)
+            
+            * client_secret __REQUIRED__ (aka client_secret -- obtained in DHL Developer Portal)
+            
+            * username __REQUIRED__. 
+
+            * password __REQUIRED__. (Max length is 22 chars) 
+            
+            The internetmarke credentials (username, password) for production access will be provided during onboarding, along with additional information. For sandbox access, suitable default values exist. See the remainder of the documentation.
+
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                grant_type:
+                  type: string
+                  enum: [client_credentials]
+                  description: OAuth2 standard content, must be set to 'client_credentials'
+                username:
+                  type: string
+                  example: franz.klammer@mydomain.com
+                  description: Internetmarke user name (e.g. 'franz.klammer@mydomain.com').
+                password:
+                  type: string
+                  example: abfahrt123#
+                  description: Internetmarke password (e.g. 'abfahrt123#'). Max length is 22 chars.
+                client_id:
+                  type: string
+                  example: XjSnyVWgQp1ShIQ5HQ6Vq5PIYLN2jGNS
+                  description: API client_id obtained from developer portal (e.g. 'XjSnyVWgQp1ShIQ5HQ6Vq5PIYLN2jGNS')
+                client_secret:
+                  type: string
+                  example: TICgJWGRysH7mA57
+                  description: API client_secret obtained from developer portal (e.g. 'TICgJWGRysH7mA57')
+              required:
+                - grant_type
+                - client_id
+                - client_secret
+                - username
+                - password
+      responses:
+        '200':
+          description: OK, user is successfully authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Authentication200Response'
+        '400':
+          description: >-
+            Bad request, details about the error are described in the response
+            body.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error400Response'
+        '401':
+          description: >-
+            Unauthorized, user account is not valid, is locked, the provided authorization token is not valid or the application is not authorized by user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error401Response'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error429Response'
+        '500':
+          description: >-
+            Internal Server Error, details about the technical error are
+            provided in the response body. Please contact support if the issue persists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error500Response'
+  /app/shoppingcart:
+    post:
+      tags:
+        - AppResource
+      summary: Initializes a shopping cart and returns the shopOrderId.
+      operationId: initShoppingCartApp
+      responses:
+        '200':
+          description: OK, shopping cart initialization was successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InitShoppingCartResponse'
+        '400':
+          description: >-
+            Bad request, details about the error are described in the response
+            body, i.e. shopping cart pdf isn't finalized right now.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error400Response'
+              examples:
+                invalidProductcode:
+                  summary: The given product code is invalid
+                  value:
+                    statusCode: "400"
+                    title: "invalidProductcode"
+                    detail: "The productcode is invalid! Reason: No product with productcode: 9999 found!"
+                invalidShopOrderID:
+                  summary: The given shopOrderId is invalid
+                  value:
+                    statusCode: "400"
+                    title: "invalidShopOrderID"
+                    detail: "Queued order duplicated for the shopOrderId '123123'"
+        '401':
+          description: >-
+            Unauthorized, user account is not valid, is locked, the provided authorization token is not valid or the application is not authorized by user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error401Response'
+        '403':
+          description: Forbidden, user has not enough privileges to perform this request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error403Response'
+        '404':
+          description: Not found, the specified shopOrderId could not be found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error404Response'
+              example:
+                statusCode: "404"
+                title: "Not Found"
+                detail: "Order not found: ORDERID12345"
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error429Response'
+        '500':
+          description: >-
+            Internal Server Error, details about the technical error are
+            provided in the response body. Please contact support if the issue persists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error500Response'
+      security:
+        - BearerAuth: []
+  /app/shoppingcart/png:
+    post:
+      tags:
+        - AppResource
+      summary: Checkouts the PNG shopping cart. Be aware of the different types of schemas for checkout OR preview within the request. Preview does not need addresses. The print format is not relevant at this point.
+      operationId: checkoutShoppingCartPNGApp
+      parameters:
+        - name: validate
+          in: query
+          description: >-
+            The response will contain the link to a thumbnail image of an
+            Internet brand in PNG format, which the third-party application must
+            integrate accordingly. The print format is not relevant at this
+            point. The service is given a product code, optionally a motif and a
+            layout format. This information is encoded in the link and evaluated
+            by INTERNETMARKE when the preview image is rendered. If the product
+            code or theme ID is invalid, the response to the caller will contain
+            appropriate information.
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - name: directCheckout
+          in: query
+          description: >-
+            This request parameter enables the direct checkout of the
+            shopping cart and an extra checkout request is not required.
+          required: false
+          schema:
+            type: boolean
+            default: false
+      requestBody:
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/AppShoppingCartPNGRequest'
+                - $ref: '#/components/schemas/AppShoppingCartPreviewPNGRequest'
+        required: true
+      responses:
+        '200':
+          description: >-
+            OK, create and checkout shopping cart PNG was successfully.
+            Due to the request for checkout, the response will contain the link to a internet stamp in PNG format. 
+            Appropriate print formats are relevant. For the given product code, voucherLayout format and optionally a motif, 
+            the INTERNETMARKE pdf is rendered and the link provided.  
+            In case of preview the response will contain the link to a preview pdf of an internet stamp in PNG format. 
+            Addresses are not part of the preview request.
+            If the product code or theme ID is invalid, the response to the caller will contain appropriate information.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckoutShoppingCartApp200Response'
+        '400':
+          description: >-
+            Bad request, details about the error are described in the response
+            body.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error400Response'
+              examples:
+                invalidProductcode:
+                  summary: The given product code is invalid
+                  value:
+                    statusCode: "400"
+                    title: "invalidProductcode"
+                    detail: "The productcode is invalid! Reason: No product with productcode: 9999 found!"
+                invalidShopOrderID:
+                  summary: The given shopOrderId is invalid
+                  value:
+                    statusCode: "400"
+                    title: "invalidShopOrderID"
+                    detail: "Queued order duplicated for the shopOrderId '123123'"
+        '401':
+          description: >-
+            Unauthorized, user account is not valid, is locked, the provided authorization token is not valid or the application is not authorized by user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error401Response'
+        '403':
+          description: Forbidden, user has not enough privileges to perform this request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error403Response'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error429Response'
+        '500':
+          description: >-
+            Internal Server Error, details about the technical error are
+            provided in the response body. Please contact support if the issue persists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error500Response'
+      security:
+        - BearerAuth: []
+  /app/shoppingcart/pdf:
+    post:
+      tags:
+        - AppResource
+      summary: Checkouts the PDF shopping cart. Be aware of the different types of schemas for checkout OR preview within the request. Preview does not need addresses.
+      operationId: checkoutShoppingCartPDFApp
+      parameters:
+        - name: validate
+          in: query
+          description: >-
+            This request parameter enables the validate (preview) case.<br/>The
+            response will contain the link to a preview image of an internet
+            stamp in PDF format. A product code, a layout format and optionally
+            a motif are transferred to the service. This information is encoded
+            in the link and evaluated by INTERNETMARKE when the preview image is
+            rendered. If the product code, print format, or theme ID is invalid,
+            the response to the caller will contain appropriate information.  
+            <br/><br/> For the validate (preview) case the request body has to be of the
+            specified type (See
+            `#/components/schemas/AppShoppingCartPreviewPDFRequest`).
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - name: directCheckout
+          in: query
+          description: 'This request parameter enables the direct checkout of the
+            shopping cart and an addition request for the checkout is not required.'
+          required: false
+          schema:
+            type: boolean
+            default: false
+      requestBody:
+        content:
+          application/json:
+            schema:
+              description: >-
+                The request body structure can be of different types. The type
+                of the request has to be provided by specifying the filed 'type'
+                of the body.
+              oneOf:
+                - $ref: '#/components/schemas/AppShoppingCartPDFRequest'
+                - $ref: '#/components/schemas/AppShoppingCartPreviewPDFRequest'
+        required: true
+      responses:
+        '200':
+          description: >- 
+            OK, create and checkout shopping cart PDF was successfully.
+            Due to the request for checkout, the response will contain the link to a internet stamp in PDF format.
+            Appropriate print formats are relevant. For the given product code, voucherLayout format and optionally a motif,
+            the INTERNETMARKE pdf is rendered and the link provided.
+            In case of preview the response will contain the link to a preview pdf of an internet stamp in PNG format.
+            Addresses are not part of the preview request.
+            If the product code or theme ID is invalid, the response to the caller will contain appropriate information.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckoutShoppingCartApp200Response'
+        '400':
+          description: >-
+            Bad request, details about the error are described in the response
+            body.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error400Response'
+        '401':
+          description: >-
+            Unauthorized, user account is not valid, is locked, the provided authorization token is not valid or the application is not authorized by user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error401Response'
+        '403':
+          description: Forbidden, user has not enough privileges to perform this request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error403Response'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error429Response'
+        '500':
+          description: >-
+            Internal Server Error, details about the technical error are
+            provided in the response body. Please contact support if the issue persists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error500Response'
+      security:
+        - BearerAuth: []
+  /app/retoure:
+    get:
+      tags:
+        - AppResource
+      summary: Retrieve retoure state for ordered items corresponding to shopRetoureId or retoureTransactionId
+      operationId: retrieveRetoureStateApp
+      parameters:
+        - name: shopRetoureId
+          in: query
+          description: The shopRetoureId was returned from the retoure Vouchers request.
+          required: false
+          schema:
+            type: string
+        - name: retoureTransactionId
+          in: query
+          description: >-
+            Internal transaction number under which the refund was booked in the
+            PCF.
+          required: false
+          schema:
+            type: integer
+            format: int32
+        - name: startDate
+          in: query
+          description: >-
+            The start date of the search. Expected format:
+            yyyy-MM-dd'T'HH:mm:ss.SSSXXX.
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          description: >-
+            The end date of the search. Expected format:
+            yyyy-MM-dd'T'HH:mm:ss.SSSXXX.
+          required: false
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: OK, retoure state found successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RetrieveRetoureStateResponse'
+        '400':
+          description: >-
+            Bad request, details about the error are described in the response
+            body.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error400Response'
+              example:
+                statusCode: "400"
+                title: "unknownShopOrderId"
+                detail: "Queued order duplicated for the shopOrderId '123123'"
+        '401':
+          description: Unauthorized, user account is not valid, is locked, the provided authorization token is not valid or the application is not authorized by user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error401Response'
+        '403':
+          description: Forbidden, user has not enough privileges to perform this request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error403Response'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error429Response'
+        '500':
+          description: >-
+            Internal Server Error, details about the technical error are
+            provided in the response body. Please contact support if the issue persists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error500Response'
+      security:
+        - BearerAuth: []
+    post:
+      tags:
+        - AppResource
+      summary: Request retoure for ordered items corresponding to all items for shopOrderId or items with specific voucherId or trackId
+      operationId: retoureVouchersApp
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RetoureVouchersRequest'
+        required: true
+      responses:
+        '200':
+          description: OK, retoure vouchers processed successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RetoureVouchersResponse'
+        '400':
+          description: >-
+            Bad request, details about the error are described in the response
+            body.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error400Response'
+        '401':
+          description: Unauthorized, user account is not valid, is locked, the provided authorization token is not valid or the application is not authorized by user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error401Response'
+        '403':
+          description: Forbidden, user has not enough privileges to perform this request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error403Response'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error429Response'
+        '500':
+          description: >-
+            Internal Server Error, details about the technical error are
+            provided in the response body. Please contact support if the issue persists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error500Response'
+      security:
+        - BearerAuth: []
+  /user/profile:
+    get:
+      tags:
+        - UserResource
+      summary: Retrieve profile data of authorized user for shop.
+      operationId: retrieveUserData
+      description:  | 
+            The client retrieves certain settings about his user profile.
+
+      responses:
+        '200':
+          description: >-
+            OK, user is successfully authorized and the user data returned
+            within the response body.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RetrieveUserDataResponse'
+        '400':
+          description: >-
+            Bad request, details about the error are described in the response
+            body.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error400Response'
+        '401':
+          description: Unauthorized, user account is not valid, is locked, the provided authorization token is not valid or the application is not authorized by user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error401Response'
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error429Response'
+        '500':
+          description: >-
+            Internal Server Error, details about the technical error are
+            provided in the response body. Please contact support if the issue persists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error500Response'
+      security:
+        - BearerAuth: []
+  /app/shoppingcart/{shopOrderId}:
+    get:
+      tags:
+        - AppResource
+      summary: Retrieves a shopping cart.
+      operationId: retrieveShoppingCartApp
+      parameters:
+        - name: shopOrderId
+          in: path
+          description: >-
+            The shopOrderId was responsed within the response body of the
+            checkout operation.
+          required: true
+          schema:
+            maxLength: 18
+            minLength: 1
+            type: string
+      responses:
+        '200':
+          description: OK, retrieve shopping cart pdf was successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckoutShoppingCartAppResponse'
+              example:
+                type: "CheckoutShoppingCartAppResponse"
+                link: "https://pcf-next.tcb.deutschepost.de/PcfExtensionWeb/document?keyphase=3&data=GpyUVLv5OfMWrV0KlUyeqIusHgvB9sO7BZ5Sh9m%2FZnI%3D"
+                manifestLink: ""
+                shoppingCart:
+                  shopOrderId: "98276337"
+                  voucherList:
+                    - voucherId: "A00123C0390000000138"
+                      trackId: ""
+                walletBallance: 42355
+        '400':
+          description: >-
+            Bad request, details about the error are described in the response
+            body.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error400Response'
+              example:
+                statusCode: "400"
+                title: "invalidShopOrderID"
+                detail: "Queued order duplicated for the shopOrderId '123123'"
+        '401':
+          description: >-
+            Unauthorized, user account is not valid, is locked, the provided authorization token is not valid or the application is not authorized by user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error401Response'
+        '403':
+          description: Forbidden, user has not enough privileges to perform this request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error403Response'
+        '404':
+          description: Not found, the specified shopOrderId could not be found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error404Response'
+              example:
+                statusCode: "404"
+                title: "Not Found"
+                detail: "Order not found: ORDERID12345"
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error429Response'
+        '500':
+          description: >-
+            Internal Server Error, details about the technical error are
+            provided in the response body. Please contact support if the issue persists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error500Response'
+      security:
+        - BearerAuth: []
+  /app/catalog:
+    get:
+      tags:
+        - AppResource
+      summary: Retrieve catalogs.
+      operationId: retrieveCatalogApp
+      parameters:
+        - name: types
+          in: query
+          description: >-
+            The type of the required catalog, can be specified as single or
+            multiple. Only specified types will be returned.
+          required: true
+          schema:
+            type: array
+            items:
+              type: string
+              enum:
+                - PUBLIC
+                - PAGE_FORMATS
+      responses:
+        '200':
+          description: OK, specified catalog content was found successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RetrieveCatalogResponse'
+        '400':
+          description: >-
+            Bad request, details about the error are described in the response
+            body.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error400Response'
+        '401':
+          description: >-
+            Unauthorized, user account is not valid, is locked, the provided authorization token is not valid or the application is not authorized by user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error401Response'
+        '403':
+          description: Forbidden, user has not enough privileges to perform this request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error403Response'
+        '404':
+          description: Not found, the specified catalog could not be found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error404Response'
+              example:
+                statusCode: "404"
+                title: "Not Found"
+                detail: "Catalog not found: CATALOG12345"
+        '429':
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error429Response'
+        '500':
+          description: >-
+            Internal Server Error, details about the technical error are
+            provided in the response body. Please contact support if the issue persists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error500Response'
+      security:
+        - BearerAuth: []
+components:
+  schemas:
+    RequestStatus:
+      required:
+        - statusCode
+        - title
+        - detail
+      type: object
+      properties:
+        statusCode:
+          type: string
+          description: The http status code.
+        title:
+          type: string
+          description: The title of the error.
+        detail:
+          type: string
+          description: The detailed description about the error.
+      description: The response details in case of errors.
+      example:
+        statusCode: "400"
+        title: "Bad Request"
+        detail: "Required request header 'Authorization' for method parameter type String is not present"
+    ChargeWalletResponse:
+      required:
+        - shopOrderId
+      type: object
+      properties:
+        shopOrderId:
+          maxLength: 18
+          minLength: 1
+          type: string
+          description: >-
+            The order number in the shop. All characters are allowed except <
+            and &.
+        walletBalance:
+          type: integer
+          description: The new balance.
+          format: int32
+      description: The response object for the charge wallet operation.
+    Error403Response:
+      description: The response object for 403 Forbidden errors.
+      allOf:
+        - $ref: '#/components/schemas/RequestStatus'
+      example:
+        statusCode: "403"
+        title: "Forbidden"
+        detail: 'Forbidden, user has not enough privileges to perform this request.'
+    Error404Response:
+      description: The response object for 404 Not Found errors.
+      allOf:
+        - $ref: '#/components/schemas/RequestStatus'
+      example:
+        statusCode: "404"
+        title: "Not found"
+        detail: 'Catalog not found: CATALOG12345'
+    Error429Response:
+      description: The response object for 429 Too Many Requests errors.
+      allOf:
+        - $ref: '#/components/schemas/RequestStatus'
+      example:
+        statusCode: "429"
+        title: "Too Many Requests"
+        detail: 'Too many requests sent, please try again later.)'
+    Error400Response:
+      description: The response object for 400 Bad Request errors. Check the detail field for more information.
+      allOf:
+        - $ref: '#/components/schemas/RequestStatus'
+      example:
+        statusCode: "400"
+        title: "Bad Request"
+        detail: "Required request header 'Authorization' for method parameter type String is not present"
+    Error401Response:
+      description: The response object for 401 Unauthorized errors.
+      allOf:
+        - $ref: '#/components/schemas/RequestStatus'
+      example:
+        statusCode: "401"
+        title: "Unauthorized"
+        detail: 'Unauthorized, user account is not valid, is locked, the provided authorization token is not valid or the application is not authorized by user.'
+    Error500Response:
+      description: Internal Server Error, details about the technical error are
+        provided in the response body. Please contact support if the issue persists.
+      allOf:
+        - $ref: '#/components/schemas/RequestStatus'
+      example:
+        statusCode: "500"
+        title: "Internal Server Error"
+        detail: "Internal Server Error, details about the technical error are
+            provided in the response body. Please contact support if the issue persists."
+    Authentication200Response:
+      description: The response object for user authentication.
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: The access token / bearer token. (user_token is deprecated)
+        walletBalance:
+          type: integer
+          description: money balance in portokasse
+        infoMessage:
+          type: string
+          description: info message, if any
+        tokenType:
+          type: string
+          description: Will always contain 'BearerToken'
+        expires_in:
+          type: integer
+          description: remaining token validity in seconds
+        issued_at:
+          type: string
+          pattern: '^[A-Za-z]{3}, \d{2} [A-Za-z]{3} \d{4} \d{2}:\d{2}:\d{2} GMT$'
+          description: Time when token was issued
+        external_customer_id:
+          type: string
+          description: Matches the user requesting the token, used internally
+        authenticated_user:
+          type: string
+          description: user requesting the token
+      example:
+                access_token: BnN6L2SeyMjKcIMGhgaaUO6GNAIMBtdqmG7klJKbcIo=
+                walletBalance: 2446814
+                infoMessage: ''
+                token_type: BearerToken
+                expires_in: 3000
+                issued_at: Wed, 03 Apr 2024 08:37:17 GMT
+                external_customer_id: DHL-0123
+                authenticated_user: max.mustermann@deutschepost.de
+    InitShoppingCartResponse:
+      required:
+        - shopOrderId
+      type: object
+      properties:
+        shopOrderId:
+          maxLength: 18
+          minLength: 1
+          type: string
+          description: >-
+            The order number in the shop. All characters are allowed except <
+            and &.
+      description: The response object for creating the shopOrderId..
+    Address:
+      description: The address information used for sender and receiver.
+      required:
+        - addressLine1
+        - city
+        - country
+        - name
+        - postalCode
+      type: object
+      properties:
+        name:
+          maxLength: 50
+          minLength: 1
+          type: string
+          description: The name information (firstname lastname)
+          example: Max Mustermann
+        additionalName:
+          maxLength: 40
+          minLength: 0
+          type: string
+          description: The additional name information (i. e. company name)
+          example: Deutsche Post AG
+        addressLine1:
+          maxLength: 50
+          minLength: 1
+          type: string
+          description: >-
+            This is the first line of the address. Usually street name and house
+            number.
+        addressLine2:
+          maxLength: 60
+          minLength: 1
+          type: string
+          description: >-
+            Line 2 of the street address. Most of the time this is not needed
+            and not printed to most labels.
+          example: 3rd Floor
+        postalCode:
+          maxLength: 5
+          minLength: 5
+          type: string
+          description: The zip code.
+          example: '10115'
+        city:
+          maxLength: 40
+          minLength: 1
+          type: string
+          description: The name of the city.
+          example: Berlin
+        country:
+          maxLength: 3
+          minLength: 3
+          type: string
+          description: The iso 3 code of the country.
+          example: DEU
+    AddressBinding:
+      required:
+        - receiver
+        - sender
+      type: object
+      properties:
+        sender:
+          $ref: '#/components/schemas/Address'
+        receiver:
+          $ref: '#/components/schemas/Address'
+      description: The combination of sender and receiver address.
+    VoucherPosition:
+      type: object
+      properties:
+        labelX:
+          type: integer
+          description: The x-position of the label.
+          format: int32
+        labelY:
+          type: integer
+          description: The y-position of the label.
+          format: int32
+        page:
+          type: integer
+          description: The target page in the printout.
+          format: int32
+      description: >-
+        The position coordinates of the order item. It is mandatory required for
+        the PDF format. Values >0 are mandatory.
+    Voucher:
+      required:
+        - voucherId
+      type: object
+      properties:
+        voucherId:
+          type: string
+          description: The voucher ID.
+        trackId:
+          type: string
+          description: The tracking ID.
+      description: The voucher encapsulates the voucher ID and the tracking ID.
+    RetoureVouchersResponse:
+      required:
+        - retoureTransactionId
+        - shopRetoureId
+      type: object
+      properties:
+        shopRetoureId:
+          maxLength: 18
+          minLength: 1
+          type: string
+          description: The shop return ID.
+        retoureTransactionId:
+          type: string
+          description: >-
+            The internal transaction number under which the refund was booked in
+            the system.
+      description: The response object for refund.
+    RetoureVouchersRequest:
+      required:
+        - shoppingCart
+      type: object
+      properties:
+        shoppingCart:
+          $ref: '#/components/schemas/ShoppingCart'
+      description: The request object for refund.
+    ShoppingCart:
+      type: object
+      properties:
+        shopOrderId:
+          maxLength: 18
+          minLength: 1
+          type: string
+          description: >-
+            The order number in the shop. All characters are allowed except <
+            and &.
+        voucherList:
+          maxItems: 2147483647
+          minItems: 1
+          type: array
+          description: The list of created franking IDs.
+          items:
+            $ref: '#/components/schemas/Voucher'
+      description: >-
+        The structural element for describing the shopping cart and the
+        generated matrix code(s).
+    CheckoutShoppingCartApp200Response:
+          $ref: '#/components/schemas/CheckoutShoppingCartAppResponse'
+    AppCheckoutPNGRequest:
+      description: >-
+        The base request object for external partners to get an internet stamp
+        in PNG format.
+      required:
+        - type
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - AppShoppingCartPNGRequest
+            - AppShoppingCartPreviewPNGRequest
+          example: AppShoppingCartPNGRequest
+          default: AppShoppingCartPNGRequest
+          description: >- 
+            set AppShoppingCartPNGRequest if validate=false, AppShoppingCartPreviewPNGRequest if validate=true
+      discriminator:
+        propertyName: type
+    AppShoppingCartPDFPosition:
+      required:
+        - position
+        - positionType
+        - productCode
+        - voucherLayout
+      type: object
+      description: The representation of an order item in PDF format.
+      discriminator:
+        propertyName: positionType
+      allOf:
+        - $ref: '#/components/schemas/AppShoppingCartPosition'
+        - type: object
+          properties:
+            position:
+              $ref: '#/components/schemas/VoucherPosition'
+            positionType:
+              type: string
+              example: AppShoppingCartPDFPosition
+    AppShoppingCartPNGRequest:
+      required:
+        - positions
+        - type
+      type: object
+      description: >-
+        The request object for external partners to buy an internet stamp in PNG
+        format.
+      discriminator:
+        propertyName: type
+      allOf:
+        - $ref: '#/components/schemas/AppCheckoutPNGRequest'
+        - type: object
+          properties:
+            shopOrderId:
+              maxLength: 18
+              minLength: 1
+              type: string
+              description: >-
+                The order number in the shop. All characters are allowed except
+                < and &. It is optional in case of query parameter directCheckout is
+                true. In all other cases it is mandatory required.
+            total:
+              type: integer
+              description: Total value of the shopping cart in euro cents.
+              format: int32
+            createManifest:
+              type: boolean
+              description: The flag indicating whether a posting receipt should be created.
+            createShippingList:
+              type: string
+              enum: [ "0","1","2" ]
+              description: >-
+                Identifier of which type of shipping list is to be created:
+                0: No shipping list
+                1: Shipping list without addresses / delivery receipt only
+                2: Shipping list with addresses
+            dpi:
+              type: string
+              enum:
+                - DPI300
+                - DPI203
+            optimizePNG:
+              type: boolean
+              description: The flag to optimize the PNG (avoid redundant area height).
+            positions:
+              type: array
+              description: List of PNG order items. At least one item has to be specified.
+              items:
+                $ref: '#/components/schemas/AppShoppingCartPosition'
+            type:
+              type: string
+          required:
+            - total
+
+    AppShoppingCartPosition:
+      required:
+        - positionType
+        - productCode
+        - voucherLayout
+      type: object
+      properties:
+        productCode:
+          minimum: 1
+          type: integer
+          description: >-
+            The product code for the selected product, e.g. standard
+            letter, maxi letter etc. The product code can be derived from ProdWS integration or directly taken from the downloadable product price lists (PPLs). The product code must be greater than 0 and
+            the product must be available in the third-party application.
+          format: int32
+        imageID:
+          type: integer
+          description: The id of the motif to be printed.
+          format: int32
+        address:
+          $ref: '#/components/schemas/AddressBinding'
+        voucherLayout:
+          type: string
+          enum:
+            - ADDRESS_ZONE
+            - FRANKING_ZONE
+        positionType:
+          type: string
+          example: AppShoppingCartPosition
+          default: AppShoppingCartPosition
+      description: The representation of an order item in PNG format.
+    AppShoppingCartPreviewPNGRequest:
+      required:
+        - voucherLayout
+      type: object
+      description: The request object for validate (preview) shopping cart png.
+      allOf:
+        - $ref: '#/components/schemas/AppCheckoutPNGRequest'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - AppShoppingCartPNGRequest
+                - AppShoppingCartPreviewPNGRequest
+              example: AppShoppingCartPNGRequest
+              default: AppShoppingCartPNGRequest
+              description: >- 
+                set AppShoppingCartPNGRequest if validate=false, AppShoppingCartPreviewPNGRequest if validate=true
+            productCode:
+              minimum: 1
+              type: integer
+              description: >-
+                The product code for the selected product, e.g.
+                standard letter, maxi letter etc. The product code must be
+                greater than 0 and the product must be available in the
+                third-party application.
+              format: int32
+            imageID:
+              type: integer
+              description: The ID of the motif.
+              format: int32
+            voucherLayout:
+              type: string
+              enum:
+                - ADDRESS_ZONE
+                - FRANKING_ZONE
+            dpi:
+              type: string
+              enum:
+                - DPI300
+                - DPI203
+            optimizePNG:
+              type: boolean
+              description: Flag to optimize the PNG.
+    AppCheckoutPDFRequest:
+      description: >-
+          The base request object for external partners to get an internet stamp
+          in PDF format.
+      required:
+        - type
+      type: object
+      properties:
+        type:
+          type: string
+      discriminator:
+        propertyName: type
+    AppShoppingCartPDFRequest:
+      required:
+        - positions
+        - type
+      type: object
+      description: >-
+        The request object for external partners to buy an internet stamp in PDF
+        format.
+      discriminator:
+        propertyName: type
+      allOf:
+        - $ref: '#/components/schemas/AppCheckoutPDFRequest'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - AppShoppingCartPDFRequest
+                - AppShoppingCartPreviewPDFRequest
+              example: AppShoppingCartPDFRequest
+              default: AppShoppingCartPDFRequest
+              description: >- 
+                set AppShoppingCartPDFRequest if validate=false, AppShoppingCartPreviewPDFRequest if validate=true
+            shopOrderId:
+              maxLength: 18
+              minLength: 1
+              type: string
+              description: >-
+                The order number in the shop. All characters are allowed except
+                < and &. It is optional in case of query parameter finalize is
+                true. In all other cases it is mandatory required.
+            total:
+              type: integer
+              description: Total value of the shopping cart in euro cents.
+              format: int32
+            createManifest:
+              type: boolean
+              description: The flag indicating whether a posting receipt should be created.
+            createShippingList:
+              type: string
+              enum: ["0","1","2"]
+              description: >-
+                Identifier of which type of shipping list is to be created:
+                0: No shipping list
+                1: Shipping list without addresses / delivery receipt only
+                2: Shipping list with addresses
+            dpi:
+              type: string
+              enum:
+                - DPI300
+                - DPI203
+            pageFormatId:
+              minimum: 1
+              type: integer
+              description: The ID of the print format. All available formats can be identified by request /app/catalog?types=PAGE_FORMATS
+              format: int32
+            positions:
+              type: array
+              description: List of PDF order items. At least one item has to be specified.
+              items:
+                $ref: '#/components/schemas/AppShoppingCartPDFPosition'
+          required:
+            - total
+    AppShoppingCartPreviewPDFRequest:
+      required:
+        - voucherLayout
+      type: object
+      description: The request object for validate (preview) shopping cart pdf.
+      allOf:
+        - $ref: '#/components/schemas/AppCheckoutPDFRequest'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - AppShoppingCartPDFRequest
+                - AppShoppingCartPreviewPDFRequest
+              example: AppShoppingCartPreviewPDFRequest
+              default: AppShoppingCartPreviewPDFRequest
+              description: >- 
+                set AppShoppingCartPDFRequest if validate=false, AppShoppingCartPreviewPDFRequest if validate=true
+            productCode:
+              minimum: 1
+              type: integer
+              description: >-
+                The product code for the selected product, e.g.
+                standard letter, maxi letter etc. The product code must be
+                greater than 0 and the product must be available in the
+                third-party application.
+              format: int32
+            imageID:
+              type: integer
+              description: The ID of the motif.
+              format: int32
+            voucherLayout:
+              type: string
+              enum:
+                - ADDRESS_ZONE
+                - FRANKING_ZONE
+            pageFormatId:
+              minimum: 1
+              type: integer
+              description: The ID of the print format. All available formats can be identified by request /app/catalog?types=PAGE_FORMATS
+              format: int32
+            dpi:
+              type: string
+              enum:
+                - DPI300
+                - DPI203
+    RetrieveUserDataResponse:
+      required:
+        - country
+        - invoiceFrequency
+        - invoiceType
+        - mail
+      type: object
+      properties:
+        ekp:
+          type: string
+          description: The EKP of the customer.
+        company:
+          type: string
+          description: The company name of the customer.
+        salutation:
+          type: string
+          description: The salutation of the customer.
+        title:
+          type: string
+          description: The title of the customer.
+        invoiceType:
+          type: string
+          description: The invoice type.
+          enum:
+            - 'NO'
+            - 'PAPER'
+            - 'ONLINE'
+            - 'EPOST'
+        invoiceFrequency:
+          type: string
+          description: The billing interval.
+          enum:
+            - 'DECADE'
+            - 'DAILY'
+        mail:
+          type: string
+          description: The E-Mail address of the customer.
+        firstname:
+          type: string
+          description: The firstname of the customer.
+        lastname:
+          type: string
+          description: The lastname of the customer.
+        street:
+          type: string
+          description: The street of the customer.
+        houseNo:
+          type: string
+          description: The house number of the customer.
+        zip:
+          type: string
+          description: The zip of the customer.
+        city:
+          type: string
+          description: The city of the customer.
+        country:
+          type: string
+          description: The country of the customer.
+        phone:
+          type: string
+          description: The telephone number of the customer.
+        pobox:
+          type: string
+          description: The postbox of the customer.
+        poboxZip:
+          type: string
+          description: The postbox zip of the customer.
+        poboxCity:
+          type: string
+          description: The postbox city of the customer.
+        epostbrief:
+          type: string
+      description: The response object for the retrieving the user's data by shop.
+      example:
+          ekp: '6123456789'
+          company: 'Deutsche Post AG - TCB'
+          title: ''
+          invoiceType: 'ONLINE'
+          invoiceFrequency: 'DAILY'
+          mail: 'max.mustermann@deutschepost.de'
+          firstname: 'Max'
+          lastname: 'Mustermann'
+          street: 'Hauptstrasse'
+          houseNo: '5'
+          zip: '33602'
+          city: 'Teststadt'
+          country: 'DEU'
+          phone: '01234567890122'
+          pobox: '4711'
+          poboxZip: '51119'
+          poboxCity: 'Bonn'
+    CheckoutShoppingCartAppResponse:
+      required:
+        - link
+        - type
+      type: object
+      properties:
+        link:
+          type: string
+          description: The link to query the created stamp(s).
+        manifestLink:
+          type: string
+          description: The link to query the recipient or shipping list.
+        shoppingCart:
+          $ref: '#/components/schemas/ShoppingCart'
+        walletBallance:
+          type: integer
+          description: The account balance after purchase in euro cents.
+          format: int32
+        type:
+          type: string
+      description: >-
+        The response object for the service operation to generate franking
+        marks.
+      discriminator:
+        propertyName: type
+    RetoureState:
+      required:
+        - creationDate
+        - notRefundedVouchers
+        - refundedVouchers
+        - serialnumber
+        - shopRetoureId
+      type: object
+      properties:
+        retoureTransactionId:
+          type: integer
+          description: The transaction number for the refund.
+          format: int32
+        shopRetoureId:
+          type: string
+          description: The id to be assigned by the shop for the refund.
+        totalCount:
+          type: integer
+          description: The number of stamps processed with this refund transaction.
+          format: int32
+        countStillOpen:
+          type: integer
+          description: >-
+            The number of stamps not yet processed. ZINS feedback has not
+            arrived here yet.
+          format: int32
+        retourePrice:
+          type: integer
+          description: The total value of confirmed refunds.
+          format: int32
+        creationDate:
+          type: string
+          description: The timestamp when the refund was created.
+        serialnumber:
+          pattern: ^\S{10}$
+          type: string
+          description: The serial number of the Safebox (FrankierAccountId).
+        refundedVouchers:
+          maxItems: 2147483647
+          minItems: 1
+          type: array
+          description: The list of created franking IDs.
+          items:
+            $ref: '#/components/schemas/Voucher'
+        notRefundedVouchers:
+          maxItems: 2147483647
+          minItems: 1
+          type: array
+          description: The list of created franking IDs.
+          items:
+            $ref: '#/components/schemas/Voucher'
+      description: The representation of the status for already submitted refund.
+    RetrieveRetoureStateResponse:
+      type: object
+      properties:
+        RetrieveRetoureStateResponse:
+          type: array
+          description: The list of requested retoure states.
+          items:
+            $ref: '#/components/schemas/RetoureState'
+      description: The response for retrieving retoure states.
+      example:
+        RetrieveRetoureStateResponse:
+          - retoureTransactionId: 15242129
+            shopRetoureId: "17288644"
+            totalCount: 1
+            countStillOpen: 0
+            retourePrice: 95
+            creationDate: "6102025-190339"
+            serialnumber: "AF188FFFFF"
+            refundedVouchers:
+              - voucherId: "AF188FFFFF0000004F0B"
+                trackId: ""
+            notRefundedVouchers:
+              - voucherId: "AF188FFFFF0000005F0E"
+                trackId: "AF188FFFEE0000005F0E"
+    BorderDimension:
+      type: object
+      properties:
+        top:
+          type: number
+          description: Top margin.
+          format: double
+        bottom:
+          type: number
+          description: Bottom margin.
+          format: double
+        left:
+          type: number
+          description: Left margin.
+          format: double
+        right:
+          type: number
+          description: Right margin.
+          format: double
+      description: Margin dimensions for the print format.
+    ContractProduct:
+      type: object
+      properties:
+        productCode:
+          minimum: 1
+          type: integer
+          description: The product code.
+          format: int32
+        price:
+          type: integer
+          description: The price of the product in euro cents.
+          format: int32
+      description: The details for a contract product.
+    ContractProducts:
+      type: object
+      properties:
+        products:
+          type: array
+          description: The contract products.
+          items:
+            $ref: '#/components/schemas/ContractProduct'
+      description: The collection of contract products.
+    Dimension:
+      type: object
+      properties:
+        x:
+          type: number
+          description: The X dimension in millimeters.
+          format: double
+        'y':
+          type: number
+          description: The Y dimension in millimeters.
+          format: double
+      description: The X and Y dimensions.
+    CatalogItem:
+      required:
+        - category
+        - categoryDescription
+        - images
+      type: object
+      properties:
+        category:
+          type: string
+          description: The motif category.
+        categoryDescription:
+          type: string
+          description: The description of the motif category.
+        categoryId:
+          type: integer
+          description: The ID of the motif category.
+          format: int32
+        images:
+          type: array
+          description: The list of image items.
+          items:
+            $ref: '#/components/schemas/ImageItem'
+      description: The representation of an element of the motif catalog.
+    ImageItem:
+      required:
+        - imageDescription
+        - imageSlogan
+        - links
+      type: object
+      properties:
+        imageID:
+          type: integer
+          description: The ID of the motif.
+          format: int32
+        imageDescription:
+          type: string
+          description: The description of the motif.
+        imageSlogan:
+          type: string
+          description: A short slogan to the motif.
+        links:
+          $ref: '#/components/schemas/MotiveLink'
+      description: The representation of an image within an image category.
+    MotiveLink:
+      required:
+        - link
+        - linkThumbnail
+      type: object
+      properties:
+        link:
+          type: string
+          description: The URL to the motif.
+        linkThumbnail:
+          type: string
+          description: The URL to the motif thumbnail.
+      description: The wrapper for URL to the motif.
+    PageFormat:
+      required:
+        - name
+        - pageLayout
+        - pageType
+      type: object
+      properties:
+        id:
+          type: integer
+          description: The ID of the print format.
+          format: int32
+        isAddressPossible:
+          type: boolean
+          description: >-
+            True, if addresses can be printed on the franking marks with the
+            print format.
+        isImagePossible:
+          type: boolean
+          description: >-
+            True, if motifs can be printed on the franking marks with the print
+            format.
+        name:
+          type: string
+          description: >-
+            The name of the print format, e.g. DIN A4 plain paper or letter C5
+            162 x 229.
+        description:
+          type: string
+          description: The description of the print format.
+        pageType:
+          type: string
+          description: The specification of the print medium.)
+          enum:
+            - REGULARPAGE
+            - ENVELOPE
+            - LABELPRINTER
+            - LABELPAGE
+        pageLayout:
+          $ref: '#/components/schemas/PageLayout'
+      description: The representation of a page format.
+    PageLayout:
+      required:
+        - labelCount
+        - labelSpacing
+        - margin
+        - orientation
+        - size
+      type: object
+      properties:
+        size:
+          $ref: '#/components/schemas/Dimension'
+        orientation:
+          type: string
+          description: The page orientation.
+          enum:
+            - LANDSCAPE
+            - PORTRAIT
+        labelSpacing:
+          $ref: '#/components/schemas/Dimension'
+        labelCount:
+          $ref: '#/components/schemas/Position'
+        margin:
+          $ref: '#/components/schemas/BorderDimension'
+      description: The structured representation of the print layout.
+    Position:
+      type: object
+      properties:
+        labelX:
+          type: integer
+          description: The x-position of the label.
+          format: int32
+        labelY:
+          type: integer
+          description: The y-position of the label.
+          format: int32
+      description: The position of the label.
+    PrivateCatalog:
+      type: object
+      properties:
+        imageLink:
+          type: array
+          description: The private motif link collection.
+          items:
+            $ref: '#/components/schemas/MotiveLink'
+      description: The container for the private motif link collection.
+    PublicCatalog:
+      type: object
+      properties:
+        items:
+          type: array
+          description: The collection of catalog items.
+          items:
+            $ref: '#/components/schemas/CatalogItem'
+      description: The container for the public catalog items collection.
+    RetrieveCatalogResponse:
+      type: object
+      properties:
+        privateCatalog:
+          $ref: '#/components/schemas/PrivateCatalog'
+        publicCatalog:
+          $ref: '#/components/schemas/PublicCatalog'
+        pageFormats:
+          type: array
+          description: The container of page formats.
+          items:
+            $ref: '#/components/schemas/PageFormat'
+        contractProducts:
+          $ref: '#/components/schemas/ContractProducts'
+      description: Response object for the retrieved Catalogs.
+    ApiVersionResponse:
+      type: object
+      properties:
+        env:
+          type: string
+          description: The environment
+        version:
+          type: string
+          description: The version of the REST API
+        description:
+          type: string
+          description: The description of the REST API
+      description: Healths check response object.
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: The user token returned by the POST /user call.

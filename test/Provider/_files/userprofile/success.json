@@ -1,0 +1,20 @@
+{
+    "ekp": "6123456789",
+    "company": "Deutsche Post AG - TCB",
+    "salutation": "Herr",
+    "title": "",
+    "invoiceType": "ONLINE",
+    "invoiceFrequency": "DAILY",
+    "mail": "max.mustermann@deutschepost.de",
+    "firstname": "Max",
+    "lastname": "Mustermann",
+    "street": "Hauptstrasse",
+    "houseNo": "5",
+    "zip": "33602",
+    "city": "Teststadt",
+    "country": "DEU",
+    "phone": "01234567890122",
+    "pobox": "4711",
+    "poboxZip": "51119",
+    "poboxCity": "Bonn"
+}

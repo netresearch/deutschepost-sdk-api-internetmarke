@@ -1,0 +1,5 @@
+{
+    "statusCode": "403",
+    "title": "Forbidden",
+    "detail": "Forbidden, user has not enough privileges to perform this request."
+}

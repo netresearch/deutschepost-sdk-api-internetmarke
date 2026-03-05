@@ -1,0 +1,62 @@
+{
+    "pageFormats": [
+        {
+            "id": 1,
+            "isAddressPossible": true,
+            "isImagePossible": true,
+            "name": "DIN A4 Normalpapier",
+            "description": "Etikett DIN A4 Normalpapier",
+            "pageType": "REGULARPAGE",
+            "pageLayout": {
+                "size": {
+                    "x": 210.0,
+                    "y": 297.0
+                },
+                "orientation": "PORTRAIT",
+                "labelSpacing": {
+                    "x": 0.0,
+                    "y": 0.0
+                },
+                "labelCount": {
+                    "labelX": 1,
+                    "labelY": 1
+                },
+                "margin": {
+                    "top": 5.0,
+                    "bottom": 5.0,
+                    "left": 5.0,
+                    "right": 5.0
+                }
+            }
+        },
+        {
+            "id": 9,
+            "isAddressPossible": false,
+            "isImagePossible": false,
+            "name": "Briefumschlag DIN lang 110 x 220",
+            "description": "Briefumschlag DIN lang 110 x 220",
+            "pageType": "ENVELOPE",
+            "pageLayout": {
+                "size": {
+                    "x": 220.0,
+                    "y": 110.0
+                },
+                "orientation": "LANDSCAPE",
+                "labelSpacing": {
+                    "x": 0.0,
+                    "y": 0.0
+                },
+                "labelCount": {
+                    "labelX": 1,
+                    "labelY": 1
+                },
+                "margin": {
+                    "top": 5.0,
+                    "bottom": 5.0,
+                    "left": 5.0,
+                    "right": 5.0
+                }
+            }
+        }
+    ]
+}

@@ -1,0 +1,5 @@
+{
+    "statusCode": "500",
+    "title": "Internal Server Error",
+    "detail": "Internal Server Error, details about the technical error are provided in the response body. Please contact support if the issue persists."
+}

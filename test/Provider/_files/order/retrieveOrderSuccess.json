@@ -1,0 +1,15 @@
+{
+    "link": "https://pcf-next.tcb.deutschepost.de/PcfExtensionWeb/document?keyphase=3&data=GpyUVLv5OfMWrV0KlUyeqIusHgvB9sO7BZ5Sh9m%2FZnI%3D",
+    "manifestLink": "",
+    "shoppingCart": {
+        "shopOrderId": "98276337",
+        "voucherList": [
+            {
+                "voucherId": "A00123C0390000000138",
+                "trackId": "00340434161094042557"
+            }
+        ]
+    },
+    "walletBallance": 42355,
+    "type": "CheckoutShoppingCartAppResponse"
+}

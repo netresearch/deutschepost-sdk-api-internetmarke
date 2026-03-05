@@ -1,0 +1,43 @@
+{
+    "publicGallery": {
+        "items": [
+            {
+                "category": "Standardmotive",
+                "categoryDescription": "Standardmotive",
+                "categoryId": 1,
+                "images": [
+                    {
+                        "imageID": 1,
+                        "imageDescription": "Standardmotiv Briefmarke",
+                        "imageSlogan": "Post",
+                        "links": {
+                            "link": "https://internetmarke.deutschepost.de/PcfExtensionWeb/image?id=1",
+                            "linkThumbnail": "https://internetmarke.deutschepost.de/PcfExtensionWeb/image?id=1&thumbnail=true"
+                        }
+                    },
+                    {
+                        "imageID": 2,
+                        "imageDescription": "Herz",
+                        "imageSlogan": "Liebe",
+                        "links": {
+                            "link": "https://internetmarke.deutschepost.de/PcfExtensionWeb/image?id=2",
+                            "linkThumbnail": "https://internetmarke.deutschepost.de/PcfExtensionWeb/image?id=2&thumbnail=true"
+                        }
+                    }
+                ]
+            }
+        ]
+    },
+    "contractProducts": {
+        "products": [
+            {
+                "productCode": 10001,
+                "price": 85
+            },
+            {
+                "productCode": 10002,
+                "price": 160
+            }
+        ]
+    }
+}

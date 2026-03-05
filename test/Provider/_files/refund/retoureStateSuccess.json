@@ -1,0 +1,25 @@
+{
+    "RetrieveRetoureStateResponse": [
+        {
+            "retoureTransactionId": 15242129,
+            "shopRetoureId": "17288644",
+            "totalCount": 1,
+            "countStillOpen": 0,
+            "retourePrice": 95,
+            "creationDate": "6102025-190339",
+            "serialnumber": "AF188FFFFF",
+            "refundedVouchers": [
+                {
+                    "voucherId": "AF188FFFFF0000004F0B",
+                    "trackId": ""
+                }
+            ],
+            "notRefundedVouchers": [
+                {
+                    "voucherId": "AF188FFFFF0000005F0E",
+                    "trackId": "AF188FFFEE0000005F0E"
+                }
+            ]
+        }
+    ]
+}

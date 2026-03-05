@@ -1,0 +1,9 @@
+{
+    "amp": {
+        "name": "pp-post-internetmarke",
+        "version": "v1.1.4",
+        "rev": "13",
+        "env": "prod-eu",
+        "description": "Internetmarke REST API"
+    }
+}

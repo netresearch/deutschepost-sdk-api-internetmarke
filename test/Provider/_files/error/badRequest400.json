@@ -1,0 +1,5 @@
+{
+    "statusCode": "400",
+    "title": "Bad Request",
+    "detail": "Required request header 'Authorization' for method parameter type String is not present"
+}

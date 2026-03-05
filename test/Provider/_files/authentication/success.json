@@ -1,0 +1,10 @@
+{
+    "access_token": "BnN6L2SeyMjKcIMGhgaaUO6GNAIMBtdqmG7klJKbcIo=",
+    "walletBalance": 2446814,
+    "infoMessage": "",
+    "token_type": "BearerToken",
+    "expires_in": 3000,
+    "issued_at": "Wed, 03 Apr 2024 08:37:17 GMT",
+    "external_customer_id": "DHL-0123",
+    "authenticated_user": "max.mustermann@deutschepost.de"
+}
